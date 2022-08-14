@@ -1,0 +1,107 @@
+;Trabalho 1 - ARQ 1 - Juliana Rodrigues de Vargas - 00337553 
+
+	ORG H00 		;comeco espaco para programa
+				;inicializar as variÃ¡veis
+
+
+	LDR A #0		;preciso zerar o vetor
+zerarv: LDR X, count		;colocar count em X
+	
+	JZ  comeco
+
+	STR A vetorr,X
+
+	ADD X #255
+	STR X, count
+
+	
+	JMP zerarv
+
+
+
+;primeira tripla (H80)
+comeco:	LDR A #H80		;guardar o numero H80 no A 
+	
+	STR A, end		;carrega o que está em A no end
+	
+	STR B #HFF		;guardar endereco de vetor em B
+
+laco:	LDR A #0		;zerar aux-end			
+	STR A, aux_end		
+	LDR A, end		;colocar o endereco end em aux-end
+	STR A, aux_end		
+	LDR A end,I		;carregar o CONTEUDO desse endereco em A 
+	
+
+	JN  negat 		;se for negativo, vou para a rotina que vai para o numero negativo	
+	JZ  final				
+				;se for positivo, venho pra ca¡
+
+	JSR vetor		;vou guardar o valor no vetor
+ 	LDR A, aux_end		;carregar o conteudo de aux-end (o conteudo eh o endereco) em A 
+	ADD A,#2		;somar #2 em A
+	
+
+	STR A, end   		;guardar o A em end 
+	LDR A end, I		;guardar o conteudo de end em A
+	STR A, end		;guardar o A em end
+	JZ  final
+
+	JMP laco		;voltar pro laco
+
+	
+negat:  NOP 
+	
+	JSR vetor
+
+	LDR A, aux_end		;carregar o conteudo de aux-end (que eh o endereco) em A 
+	ADD A, #1		;somar #1 em A
+	
+	STR A, end   		;guardar o A em end 
+	LDR A end, I		;guardar o conteudo de end em A
+	STR A, end		;guardar o A em end
+	JZ  final
+ 
+	JMP laco		;voltar pro laco
+
+
+				
+vetor:  			;subrotina pra colocar no vetor
+	NOP			;precisa disso pra guardar valor de retorno
+	
+	LDR A aux_end,I		;carrego o valor q está no endereço em A
+				
+	ADD X, #1		;adiciona 1 em X. adiciona antes pq o 0 precisa guardar o numero de elemntos
+	
+	STR X, count
+
+	STR B,HF0		;guardando o HF0 em B pra testar	
+
+	STR A,vetorr,X		;guardo o valor do endereço em início do vetor + count
+	
+	JMP, vetor, I
+
+	 
+
+final:	
+	LDR A, count 
+	STR A, HF0
+	HLT 
+	
+
+
+
+		ORG h60	;comeco espaco para as variaveis
+aux_end:	db 0
+end:		db 0
+count:		db 0
+aux_vetor:	db 0
+
+
+		ORG hF0
+vetorr: 	dab [16]
+
+
+
+;ORG H80	;comeco espaco para as triplas
+;ORG HF0	;comeco espaco para vetor
