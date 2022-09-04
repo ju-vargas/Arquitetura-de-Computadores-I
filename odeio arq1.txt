@@ -1,0 +1,74 @@
+
+
+** CICLO DE busca 
+
+-- busca (fetch)
+    - processador lê memoria no endereço dado pelo PC 
+
+-- decodificação e execução
+    - valor lido colocado no registrador de instruções pra ser decodificado e executado
+
+-- PC incrementado para a próxima instrução
+
+após ler uma instrução de dois endereços, o PC estará apontando para uma instrução dois endereços a frente
+durante a execução é que o processador percebe que precisa de um segundo byte
+  
+
+MOV (R7)+, RO      equivale a         MOV #5,R0
+00 05
+
+
+PERIFÉRICOS (de HFFC0 (65.472) até HFFFF (65.535))
+
+** TEMPORIZADOR 
+- TIMER
+    -> TIMDT 
+        endereço HFFD7 (65495)
+        programa o TIMER
+
+    -> INTS 
+        endereço HFFD8 (65496)
+        é o que da a notificação do tempo 
+
+** ENTRADA E SAÍDA
+- TECLADO
+    -> TECST
+        endereço H 65498
+        status do teclado, se foi clicado ou não
+
+    -> TECDT
+        endereço 65499
+        dado do teclado, qual tecla (dado ASCII) que foi teclado
+
+
+
+- VISOR
+Escrita em periféricos:
+--- MOV RO, endereço
+    Escreve LSByte de RO em Endereço
+    Ignora  MSByte
+
+
+Leitura em periféricos
+--- MOV Endereco, R0
+    Lê Endereço para o LSByte de R0
+    Zera o MSByte de RO
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+** INTERRUPÇÕES 
+
