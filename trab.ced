@@ -1,0 +1,179 @@
+; ======================================================================================================
+; FUNCOES
+; ======================================================================================================
+
+;------------------------------------------------------------------------------
+; BYTE	getchar()
+; retorna qual a tecla digitada (em R0)
+; eh bloqueante
+;------------------------------------------------------------------------------
+getchar:
+        cmp     TECDT, #h80     ; aqui, eu to testando se o TECST eh H80 (ou seja, esta ligado)
+        bne     getchar         ; se nao for igual, volto para testar de novo (branch on not equal verifica se nao eh zero)
+
+        mov     TECDT, R0       ; eh igual, logo, eu posso mover pro R0 
+        mov     #0, TECST       ; nao posso esquecer de zerar o status     
+		rts		r7              ; fim da rotina 
+
+		
+;------------------------------------------------------------------------------
+; void	putchar(BYTE c, WORD pos)
+; recebe o caractere (ASCII) que vai ser colocado no visor em R5
+; verificar se esta no intervalo correto (H20 (32) ate H7A (122))
+; recebe a posiçao do visor onde deve estar o caractere
+;------------------------------------------------------------------------------
+putchar:
+
+        cmp     #H20,r5          ; faz 32 - o caractere que foi recebido
+                                ; caso seja maior que 0, o caractere eh menor que 32
+        bhi     fim_putchar     ; N = 0, Z = 0, significa que eh menor
+        cmp     r5, 
+
+
+fim_putchar: 
+		rts		r7
+
+;		
+;------------------------------------------------------------------------------
+; void	putmsg(BYTE *msg, WORD pos)
+;------------------------------------------------------------------------------
+putmsg:
+		rts		r7
+
+;		
+;------------------------------------------------------------------------------
+; void	clr_visor()
+;------------------------------------------------------------------------------
+clr_visor:
+		rts		r7
+		
+;		
+;------------------------------------------------------------------------------
+; WORD	kbhit()
+;------------------------------------------------------------------------------
+kbhit:
+		rts		r7
+
++
+
+;		
+;------------------------------------------------------------------------------
+; WORD	get_timer()
+;------------------------------------------------------------------------------
+get_timer:
+		rts		r7
+
+;		
+;------------------------------------------------------------------------------
+; void	clr_timer()
+;------------------------------------------------------------------------------
+clr_timer:
+		rts		r7
+
+;		
+;------------------------------------------------------------------------------
+; WORD	get_timer_on()
+;------------------------------------------------------------------------------
+get_timer_on:
+		rts		r7
+
+;		
+;------------------------------------------------------------------------------
+; void	set_timer_on(WORD on)
+;------------------------------------------------------------------------------
+set_timer_on:
+		rts		r7
+		
+;		
+;------------------------------------------------------------------------------
+; WORD	get_speed()
+;------------------------------------------------------------------------------
+get_speed:
+		rts		r7
+		
+
+
+
+
+
+
+
+;===================================================================================================
+; Rotina de INTERRUPCAO
+; So sera chamada se as interrupcoes estiverem habilitadas
+;===================================================================================================
+isr:
+		mov		r0,-(r6)	; Salva registradores (nao eh necessario salvar o r5)
+		mov		r1,-(r6)
+		mov		r2,-(r6)
+		mov		r3,-(r6)
+		mov		r4,-(r6)
+        mov     r5,-(r6)
+
+
+        ;codigo alterado para saber se eh do timer ou teclado
+	    mov		INTS,r0		; Verifica se eh interrupcao do TECLADO
+		and		#2,r0       ; mascara AND pra ver se o digito 1 esta ligado (ou seja, forma 2 em binario)
+		beq		ISR2        ; se for 0, nao eh do teclado
+		jsr		r7,ISRtec	; Tratamento da INT do TECLADO
+		and		#hFFFD,INTS	; Desliga bit de INT do teclado
+
+
+ISR2:
+        ;usando aqui pra verifificar se eh interrupção do timer, se veio pra ca já nao eh do timer 
+        mov		INTS,r0		; Verifica se eh interrupcao do TIMER
+		and		#1,r0       ; mascara AND pra ver se o digito 0 esta ligado 
+		beq		cont        ; se for 0, nao eh do TIMER, continuo
+		jsr		r7,ISRtim	; Tratamento da INT do TIMER
+		and		#hFFFE,INTS	; Desliga bit de INT do TIMER
+ 
+
+cont:
+		mov     (r6)+,r5    ; Retorna os registradores da pilha
+        mov		(r6)+,r4	
+		mov		(r6)+,r3
+		mov		(r6)+,r2
+		mov		(r6)+,r1
+		mov		(r6)+,r0
+
+		rti					; Return From Interrupt
+
+
+; Tratamento das interrupcoes de timer *****************************************************************
+ISRtim:
+
+        ;aqui, eu vou usar o meu contador, pra saber a questao do tempo passado 
+
+		dec		TICKCNT		; if (--TICKCNT==0) {
+		bne		ISRtim_Fim
+		mov		r5,TICKCNT	;		TICKCNT = r5
+		
+		mov		#1,TICK		;		TICK = 1
+		
+ISRtim_Fim:
+		rts		r7			; }
+		
+	
+; Tratamento das interrupcoes de teclado *************************************************************** 
+ISRtec: 
+        tst TECST           ; vê se uma tecla foi teclada
+                            ; posso, inclusive, aqui verificar qual tecla que foi 
+        beq ISRtec_Fim
+
+        ;aqui, é como eu vou LIDAR com o teclado
+
+        mov TECDT, R0       ; passa o dado pra R0 (ou pra onde eu quiser)
+
+
+        ;código do BUFFER
+        ;o que faz??? ainda nao sei
+        ;quem sao esses ponteiros??? ainda nao sei
+        ;nao sendo mais ou menos, eu adicionaria a tecla no buffer
+        ;massss, isso nao teria utilidade pra mim! 
+        
+
+
+ISRtec_Fim: 
+        rts r7              ; volto de onde vim
+
+; ======================================================================================================

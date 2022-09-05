@@ -1,0 +1,121 @@
+
+
+** CICLO DE busca 
+
+-- busca (fetch)
+    - processador lê memoria no endereço dado pelo PC 
+
+-- decodificação e execução
+    - valor lido colocado no registrador de instruções pra ser decodificado e executado
+
+-- PC incrementado para a próxima instrução
+
+após ler uma instrução de dois endereços, o PC estará apontando para uma instrução dois endereços a frente
+durante a execução é que o processador percebe que precisa de um segundo byte
+  
+
+MOV (R7)+, RO      equivale a         MOV #5,R0
+00 05
+
+==================================================
+PERIFÉRICOS (de HFFC0 (65.472) até HFFFF (65.535))
+
+** TEMPORIZADOR 
+- TIMER
+    -> TIMDT 
+        endereço HFFD7 (65495)
+        programa o TIMER
+        valor escrito em milissegundos
+
+    -> INTS 
+        endereço HFFD8 (65496)
+        é o que da a notificação do tempo
+        se o bit 0 está ligado em ("1") houve notificação
+
+** ENTRADA E SAÍDA
+- TECLADO
+    -> TECST
+        endereço HFFDA (65498)
+        status do teclado, se foi clicado ou não
+        se = 80H, usuário digitou tecla
+        se é diferente de 80H, nao há tecla
+        RESETAR após ler TECDT
+
+    -> TECDT
+        endereço HFFDB (65499)
+        dado do teclado, qual tecla (dado ASCII) que foi teclado
+
+
+- VISOR
+    - HFFDC (65500) até HFFDB (65535)
+
+Escrita em periféricos:
+--- MOV RO, endereço
+    Escreve LSByte de RO em Endereço
+    Ignora  MSByte
+
+
+Leitura em periféricos
+--- MOV Endereco, R0
+    Lê Endereço para o LSByte de R0
+    Zera o MSByte de RO
+
+
+
+
+======================================================
+INTERRUPÇÕES
+
+**ENDEREÇOS ESPECIAIS 
+    - INTE
+        -> o que é
+            Interrupt Enable
+            QUAIS interrupções estão habilitadas
+
+        -> como setar
+            bit 7: Interrupt Enable
+            bit 1: teclado
+            bit 0: timer
+
+        1 - 0 - 0 - 0 - 0 - 0 - 1 - 1
+        7                       1   0
+
+    - INTS
+        -> o que é
+            Interrupt Status
+            SITUAÇÃO da interrupção
+
+        -> como setar
+            bit 7: Interrupt Pending
+                   está se executando o tratador de interrupção
+                   ligado quando a ISR ta sendo executada
+            bit 1: teclado
+                   a interrupção foi gerada pelo acionamento da tecla 
+            bit 0: timer
+                   interrupção gerada pelo timer
+
+        1 - 0 - 0 - 0 - 0 - 0 - 1 - 1
+        7                       1   0
+
+            esses dois ultimos bits sao usados pela ISR pra identificar origem da interrupção
+
+**CONDIÇÕES
+
+    - Para ocorrer a interrupção:
+            Interrupt Enable = 1
+            Interrupt Enable Source tec && Interrupt Pending tec
+     ou     Interrupt Enable Source tim && Interrupt Pending tim
+     
+
+
+
+**AÇÕES
+    - O que ocorre na interrupção
+
+
+
+    
+
+
+
+
