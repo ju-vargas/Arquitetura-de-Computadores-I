@@ -1,0 +1,343 @@
+;******************************************************************************
+;
+;	Arquivo de Refer?ncia para o desenvolvimento do kernel.
+;
+;	Vers?o: 2022.1
+;
+;	?reas de mem?ria
+;
+;	0000 - 7FFF		_KERNEL
+;					?rea de Kernel para implementa??o dos alunos
+;
+;	0100 - 01FF		_VETTAB
+;					Tabela com os vetores das fun??es do kernel
+;					*** CUIDADO! Esse vetor est? no meio da ?rea de c?digo ***
+;
+;	8000 - FF7F		_APP
+;					?rea onde ser? colocado o programa de aplica??o.
+;					Esse programa vai fazer o acesso aos perif?ricos e interrup??es, atrav?s das fun??es do Kernel.
+;
+;	FF80 - FFBF 		_IOAREA16
+;					Area de perifericos, acessada na base 16 bits
+;
+;	FFC0 - FFFF		_IOAREA08
+;					Area de perifericos, acessada na base 8 bits
+;
+;******************************************************************************
+
+_KERNEL:	equ	h0000
+_VETTAB:	equ	h0100
+_RESET:		equ	_VETTAB+H0100
+_APP:		equ	h8000
+_IOAREA16:	equ	hFF80
+_IOAREA08:	equ	hFFC0
+_STACK:		equ 	h7FFF
+
+;------------------------------------------------------------------------------
+;	?rea reservada para os perif?ricos
+;------------------------------------------------------------------------------
+
+; Acesso em 16 bits
+		org		_IOAREA16
+		daw		[31]
+IVET:	dw		0			; Vetor de interrup??o
+
+; Acesso em 8 bits
+		org		_IOAREA08
+		dab		[23]
+TIMDT:	db		0			; Registro de programa??o do timer
+INTS:	db		0			; INTERRUPT STATUS: IP x x x . x x IPStec IPStim
+INTE:	db		0			; INTERRUPT ENABLE: IE x x x . x x IEStec IEStim
+TECST:	db		0			; Status do teclado
+TECDT:	db		0			; Dado do teclado
+VISOR:	dab		[36]			; Portas de acesso ao visor
+
+;------------------------------------------------------------------------------
+;	Ponto de entrada do RESET do processador - In?cio do programa
+;------------------------------------------------------------------------------
+
+		org		_KERNEL
+
+		jmp		_RESET
+
+;------------------------------------------------------------------------------
+;	Area do kernel com os vetores das fun??es do kernel
+;------------------------------------------------------------------------------
+
+		org		_VETTAB
+
+		dw		getchar			; BYTE	getchar()
+		dw		putchar			; void	putchar(BYTE c, WORD pos)
+		dw		putmsg			; void	putmsg(BYTE *msg, WORD pos)
+		dw		clr_visor		; void	clr_visor()
+		dw		kbhit			; WORD	kbhit()
+		dw		get_timer		; WORD	get_timer()
+		dw		clr_timer		; void	clr_timer()
+		dw		get_timer_on		; WORD	get_timer_on()
+		dw		set_timer_on		; void	set_timer_on(WORD on)
+		dw		get_speed		; WORD	get_speed()
+
+;------------------------------------------------------------------------------
+;	C?digo de RESET (BOOT) do processador/interrup??o
+;------------------------------------------------------------------------------
+
+		org		_RESET
+; 1) Desabilitar o sistema de interrup??es (feito)
+; 2) Inicializar o stack pointer (SP = R6) (feito)
+; 3) Inicializar as vari?veis internas usadas pelo sistema de interrup??es e perif?ricos (IVET, INTE, etc.)
+; 4) Inicializar as vari?veis internas do kernel
+; 5) Inicializar o teclado zerando o byte de estado (TECST, endere?o 65498)
+; 6) Inicializar o timer
+; 7) Limpar o visor
+; 8) Habilitar interrup??es
+; 9) Retornar para o programa de aplica??o com um desvio para o endere?o _APP da mem?ria
+
+	CLR	INTE		; Desabilita interrup??o de timer e teclado (1)
+	MOV	#_STACK, r6	; Incializa o Stack Pointer (2)
+	MOV	#isr, IVET	; Inicializa o IVET - vetor de interrup??es (3)
+	CLR 	INTS		; Limpa o status da interrup??o (3)
+	CLR 	TECST 		; Limpa o status do teclado (5)
+	MOV	#5, TIMDT	; Configura o timer para a periodicidade de 10ms (6)
+	JSR	R7, clr_visor	; Chama a fun??o para limpar o visor (7)
+	MOV	#h83, INTE	; Habilita interrup??es (8)
+
+	JMP	_APP	;Retorna para o _APP (9)
+
+;----------------------------------------------------------------------------------
+
+	;------------------------------------------------------------------------------
+	; BYTE	getchar()
+	;------------------------------------------------------------------------------
+
+	getchar:
+		loop_getchar:
+			CMP	TECST, #h80	; Compara o buffer do teclado com 80 em hexadecimal
+			BNE	loop_getchar	; Se n?o for igual, volta para o la?o
+
+		MOV 	TECDT, R0	; Retorna o par?metro de sa?da (tecla digitada) no registrador R0
+		CLR 	TECDT		; "Zera" o buffer do teclado
+		CLR 	TECST		
+
+		RTS	R7
+
+	;------------------------------------------------------------------------------
+	; void	putchar(BYTE c, WORD pos)
+	;------------------------------------------------------------------------------
+
+	putchar: 
+		CMP 	R5, #' '
+		BLT	Fim_PutChar	; Se R0 for menor que h20, pula para o fim da fun??o
+		CMP	R5, #'z'	; Se R0 for maior que h20, compara R0 com h7A
+		BGT	Fim_PutChar	; Se R0 for maior que h7A, pula para o fim da fun??o
+
+		; Sen?o for maior, ou seja, se for menor ou igual...
+		; Ajuste condicionais do visor
+
+		CMP 	R4, #35
+		BGE	Fim_PutChar	; Se o visor estiver no fim, chama uma fun??o para retornar ao in?cio
+
+		; Agora, R5 = tecla digitada & R4 = posi??o no visor
+		
+		ADD	#VISOR, R4
+		MOV	R5, (R4)	; Move o conte?do para a posi??o do visor
+
+		Fim_PutChar:	
+			RTS		R7
+
+	;------------------------------------------------------------------------------
+	; void	putmsg(BYTE *msg, WORD pos)
+	;------------------------------------------------------------------------------
+	
+	putmsg: 
+		MOV	#VISOR,	R4	; Move para R4 a posi??o incial no visor
+		DEC 	R5		; Decrementa 1 para "pegar" o byte menos significativo		
+
+		loop_putmsg:
+			MOV	(R5), R0	; Move o conteudo de R5 para R4
+			INC 	R5	
+			AND	#hFF, R0
+			BEQ	Fim_PutMsg
+			MOV	R0, (R4)
+			INC	R4
+			BR 	loop_putmsg
+			
+		Fim_PutMsg: 
+			RTS		R7
+
+	;------------------------------------------------------------------------------
+	; void	clr_visor()
+	;------------------------------------------------------------------------------
+
+	clr_visor:	
+		MOV	#VISOR, R0	; Move o endere?o de mem?ria do fim do visor para R0
+
+		loop_clr_visor:
+			MOV	#' ', (R0)
+			INC	R0
+			CMP	R0, #65535
+			BNE	loop_clr_visor
+
+		RTS	R7
+
+	;------------------------------------------------------------------------------
+	; WORD	kbhit()
+	;------------------------------------------------------------------------------
+	
+	kbhit:
+		CLR	R0
+		TST	TECST
+		BNE	fim_kbhit
+		CMP	TECDT, #'-'
+		BR	incrementa
+		CMP	TECDT, #'+'
+	incrementa:
+		MOV	#1,R0 
+	fim_kbhit:
+		rts	r7		; 8) Retornar para o programa de aplicacao
+
+	;------------------------------------------------------------------------------
+	; WORD	get_timer()
+	;------------------------------------------------------------------------------
+
+	get_timer:	
+		MOV	ContadorTimer, R0
+		RTS	R7
+
+	;------------------------------------------------------------------------------
+	; void	clr_timer()
+	;------------------------------------------------------------------------------
+
+	clr_timer:
+		MOV	#h00, ContadorTimer	; Zera o ContadorTimer
+		RTS	R7
+
+	;------------------------------------------------------------------------------
+	; WORD	get_timer_on()
+	;------------------------------------------------------------------------------
+
+	get_timer_on:
+
+		MOV 	INTE, R0
+		AND 	#1, R0
+
+		fim_get_timer_on:
+			RTS		R7
+
+	;------------------------------------------------------------------------------
+	; void	set_timer_on(WORD on)
+	;------------------------------------------------------------------------------
+
+	set_timer_on:
+		TST 	R5
+		BEQ	PararTimer	; Se for igual a zero, o timer deve ser parado
+		MOV 	#h83, INTE	; Habilita a interrup??o de timer (juntamente com a interrup??o de teclado)
+		BR 	fim_set_timer_on
+
+		PararTimer:
+			MOV		#h82, INTE	; Desabilita a interrup??o de timer no INTE
+
+		fim_set_timer_on:
+			RTS		R7
+
+	;------------------------------------------------------------------------------
+	; WORD	get_speed()
+	;------------------------------------------------------------------------------
+
+	get_speed:
+		MOV		VelocidadeCar, R0
+		RTS		R7
+
+	;----------------------------------------------------------------------------------
+
+;------------------------------------------------------------------------------
+;	Rotina de interrup??o
+;------------------------------------------------------------------------------
+
+isr: 
+	; Salvando os registradores na pilha
+	mov	r0,-(r6)	
+	mov	r1,-(r6)
+	mov	r2,-(r6)
+	mov	r3,-(r6)
+	mov	r4,-(r6)
+	mov	r5,-(r6)
+
+	mov	INTS, r0	; Verifica a interrup??o
+	and	#2, r0		; Testa interrup??o de teclado
+	beq 	verifica_timer
+	jsr	r7, isr_teclado		; Desvio para a rotina de interrup??o do timer
+	retorna_isrTEC:
+		CLR	INTS
+		BR	isr_retorno
+
+verifica_timer:
+	mov	INTS, r1
+	and	#1, r1
+	beq	isr_retorno
+	jsr	r7, isr_timer
+	and	#hFFFE, INTS	; Desliga o status do timer	
+
+isr_retorno:
+	; Retorna os registradores da pilha
+	mov	(r6)+,r5
+	mov	(r6)+,r4	
+	mov	(r6)+,r3
+	mov	(r6)+,r2
+	mov	(r6)+,r1
+	mov	(r6)+,r0
+
+	rti	; Retorno de interrup??o
+
+;------------------------------------------------------------------------------
+;	Rotina de interrup??o de teclado
+;------------------------------------------------------------------------------
+
+isr_teclado:
+
+	tst	TECST			; Testa o status do teclado para verificar se alguma tecla foi digitada
+	beq	fim_isr_teclado		; Caso o status n?o apontar para uma interrup??o, desvia para o fim da rotina
+
+	cmp	TECDT, #'-'		; As primeiras quatros linhas desse trecho testam se o caracter digitado 
+	beq	diminui_velocidade	; ? igual a + ou -, em virtude do funcionamento da fun??o get_speed().
+	cmp	TECDT, #'+'		; Caso essa possibilidade seja confirmada, o valor n?o ? adiciona no TecBuffer.
+	beq	aumenta_velocidade
+	mov	TECDT, TecBuffer 
+	br	fim_isr_teclado
+	
+	
+	diminui_velocidade:
+		cmp	VelocidadeCar, #0
+		beq	fim_isr_teclado
+		ADD	#-1, VelocidadeCar
+		br	fim_isr_teclado_AD
+	
+	aumenta_velocidade:
+		cmp	VelocidadeCar, #100
+		beq	fim_isr_teclado
+		ADD	#1, VelocidadeCar
+		br	fim_isr_teclado_AD
+
+fim_isr_teclado_AD:
+	CLR 	TECST
+	
+fim_isr_teclado:
+	rts		r7
+
+
+
+;------------------------------------------------------------------------------
+;	Rotina de interrup??o de timer
+;------------------------------------------------------------------------------
+
+isr_timer:
+	add	#5, ContadorTimer ; Adiciona o valor em TIMDT (periodicidade) no ContadorTimer
+	rts	r7
+
+;------------------------------------------------------------------------------
+;	Vari?veis criadas 
+;------------------------------------------------------------------------------
+
+TimerBuffer:		dw		0
+TecBuffer:		dw		0
+ContadorTimer:		dw		0
+VelocidadeCar:		db		0

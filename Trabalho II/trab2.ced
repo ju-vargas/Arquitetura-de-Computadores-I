@@ -1,22 +1,22 @@
 ;******************************************************************************
 ;       NOME: JULIANA RODRIGUES DE VARGAS
 ;
-;	Arquivo de Referência para o desenvolvimento do kernel.
+;	Arquivo de Refer?ncia para o desenvolvimento do kernel.
 ;
-;	Versão: 2022.1
+;	Vers?o: 2022.1
 ;
-;	Áreas de memória
+;	?reas de mem?ria
 ;
 ;	0000 - 7FFF		_KERNEL
-;					Área de Kernel para implementação dos alunos
+;					?rea de Kernel para implementa??o dos alunos
 ;
 ;	0100 - 01FF		_VETTAB
-;					Tabela com os vetores das funções do kernel
-;					*** CUIDADO! Esse vetor está no meio da área de código ***
+;					Tabela com os vetores das fun??es do kernel
+;					*** CUIDADO! Esse vetor est? no meio da ?rea de c?digo ***
 ;
 ;	8000 - FF7F		_APP
-;					Área onde será colocado o programa de aplicação.
-;					Esse programa vai fazer o acesso aos periféricos e interrupções, através das funções do Kernel.
+;					?rea onde ser? colocado o programa de aplica??o.
+;					Esse programa vai fazer o acesso aos perif?ricos e interrup??es, atrav?s das fun??es do Kernel.
 ;
 ;	FF80 - FFBF 		_IOAREA16
 ;					Area de perifericos, acessada na base 16 bits
@@ -33,23 +33,23 @@ _RESET:		equ	_VETTAB+H0100
 _APP:		equ	h8000
 _IOAREA16:	equ	hFF80
 _IOAREA08:	equ	hFFC0
-_STACK:		equ 	h7FFF
+STACK:		equ h7FFF
 
 
 ;======================================================================================================
-;	Área reservada para os periféricos
+;	?rea reservada para os perif?ricos
 ;======================================================================================================
 
 ; Acesso em 16 bits
-	org		_IOAREA16
-	daw		[31]
-IVET:	dw		0			; Vetor de interrupção
-						; endereço da subrotina de tratamento da interrupção
+		org		_IOAREA16
+		daw		[31]
+IVET:	dw		0			; Vetor de interrup??o
+						; endere?o da subrotina de tratamento da interrup??o
 
 ; Acesso em 8 bits
 		org		_IOAREA08
 		dab		[23]
-TIMDT:	db		0			; Registro de programação do timer
+TIMDT:	db		0			; Registro de programa??o do timer
 INTS:	db		0			; INTERRUPT STATUS: IP x x x . x x IPStec IPStim
 INTE:	db		0			; INTERRUPT ENABLE: IE x x x . x x IEStec IEStim
 TECST:	db		0			; Status do teclado
@@ -65,7 +65,7 @@ VISOR:	dab		[36]		        ; Portas de acesso ao visor
 
 
 ;------------------------------------------------------------------------------
-;	Area do kernel com os vetores das funções do kernel
+;	Area do kernel com os vetores das fun??es do kernel
 ;------------------------------------------------------------------------------
 		org		_VETTAB
 		
@@ -83,18 +83,18 @@ VISOR:	dab		[36]		        ; Portas de acesso ao visor
 		
 ;	
 ;------------------------------------------------------------------------------
-;	Código de RESET (BOOT) do processador/interrupção
+;	C?digo de RESET (BOOT) do processador/interrup??o
 ;------------------------------------------------------------------------------
-		org		_RESET
-; 1) Desabilitar o sistema de interrupções
+                org		_RESET
+; 1) Desabilitar o sistema de interrup??es
 ; 2) Inicializar o stack pointer (SP = R6)
-; 3) Inicializar as variáveis internas usadas pelo sistema de interrupções e periféricos (IVET, INTE, etc.)
-; 4) Inicializar as variáveis internas do kernel
-; 5) Inicializar o teclado zerando o byte de estado (TECST, endereço 65498)
+; 3) Inicializar as vari?veis internas usadas pelo sistema de interrup??es e perif?ricos (IVET, INTE, etc.)
+; 4) Inicializar as vari?veis internas do kernel
+; 5) Inicializar o teclado zerando o byte de estado (TECST, endere?o 65498)
 ; 6) Inicializar o timer
 ; 7) Limpar o visor
-; 8) Habilitar interrupções
-; 9) Retornar para o programa de aplicação com um desvio para o endereço _APP da memória
+; 8) Habilitar interrup??es
+; 9) Retornar para o programa de aplica??o com um desvio para o endere?o _APP da mem?ria
 
                 clr             INTE
                 mov             #STACK, R6 
@@ -102,13 +102,12 @@ VISOR:	dab		[36]		        ; Portas de acesso ao visor
                 clr             VELOCIDADE
                 clr             INTS
                 clr             TECST
-                mov             #100, TIMDT
+                mov             #5, TIMDT           ;5 ou 100?
                 jsr             r7, clr_visor
                 mov             #H83, INTE
-		jmp		_APP
+		        jmp	_APP
 
-;	
-
+;
 
 ; ======================================================================================================
 ; FUNCOES
@@ -120,12 +119,13 @@ VISOR:	dab		[36]		        ; Portas de acesso ao visor
 ; eh bloqueante
 ;------------------------------------------------------------------------------
 getchar:
-                cmp             TECDT, #h80     ; aqui, eu to testando se o TECST eh H80 (ou seja, esta ligado)
+                cmp             TECST, #h80     ; aqui, eu to testando se o TECST eh H80 (ou seja, esta ligado)
                 bne             getchar         ; se nao for igual, volto para testar de novo (branch on not equal verifica se nao eh zero)
 
                 mov             TECDT, R0       ; eh igual, logo, eu posso mover pro R0 
-                mov             #0, TECST       ; nao posso esquecer de zerar o status     
-                rts		r7              ; fim da rotina 
+                clr             TECDT
+                clr             TECST           ; nao posso esquecer de zerar o status     
+                rts		r7                      ; fim da rotina 
 
 		
 ;------------------------------------------------------------------------------
@@ -133,27 +133,28 @@ getchar:
 ; recebe em R5 o caractere (ASCII) que vai ser colocado no visor 
 ; verificar se esta no intervalo correto (H20 (32) ate H7A (122))
 ; endereco do visor vai de FFDC(65500) a FFFF(65535)
-; recebe em R4 a posiçao do visor onde deve estar o caractere
+; recebe em R4 a posi?ao do visor onde deve estar o caractere
 ;------------------------------------------------------------------------------
 putchar:
 
-                cmp             #H20,R5         ; faz 32 - o caractere que foi recebido
-                                                ; caso seja maior que 0, o caractere eh menor que 32
-                bhi             fim_putchar     ; significa que eh menor que 32, entao pula pro final
+                cmp             R5, #H20        ; o caractere que foi recebido - #H20
+                                                ; caso seja menor que 0, o caractere ? menor que h20 (err0)
+                bmi             fim_putchar     ; significa que eh menor que h20, entao pula pro final
                 cmp             R5, #H7A        ; faz R5 - 122; 
                                                 ; caso seja maior que 0, eh porque R5 eh maior que 122 
-                bhi             fim_putchar     ; significa que eh maior que 122, entao pula pro final
+                bgt             fim_putchar     ; significa que eh maior que 122, entao pula pro final
 
                 ; conferi e estao no intervalos, agora preciso colocar no visor
-                ; pra colocar no lugar correto do visor, preciso fazer um mov para o endereço indexado início do visor + valor em R4
+                ; pra colocar no lugar correto do visor, preciso fazer um mov para o endere?o indexado in?cio do visor + valor em R4
 
                 ; verificar se R4 esta entre 0 e 35
-                tst             R4 
-                bmi             fim_putchar
-                cmp             #H23, R4        ; faz 35 - o caractere que foi recebido
+                cmp 		R4, #0
+                blt 		fim_putchar     ; se r4 eh negativo ja vou pro fim
+                
+                cmp             R4,#35        	; faz 35 - o caractere que foi recebido
                                                 ; caso seja maior ou igual a 0, o caractere eh menor que 35 (esta ok)
                                                 ; caso o valor seja negativo, entao eh maior que 35  
-                bmi             fim_putchar
+                bgt		fim_putchar
                 mov             R5, VISOR(R4)
         
 fim_putchar: 
@@ -168,34 +169,50 @@ fim_putchar:
 ; recebe R4 com a posicao do visor onde comeca a ser colocado o texto
 ; R4 so pode estar entre 0 e 35
 ;------------------------------------------------------------------------------
-putmsg:         mov             #visor, R4
-                dec R5
+
+;
+putmsg:         mov             #VISOR, R4
+                dec             R5
+                
 
 putmsg_loop:
-    
-                cmp             #H23,R4         ; faz 32 - o caractere que foi recebido
-                                                ; caso seja maior que 0, o caractere eh menor que 32
-                bhi             fim_putmsg      ; significa que eh menor que 32, entao pula pro final
+    ;a posicao do visor pode ir de 0 a 35 (h23)
+    ;a string vai ate que o valor dentro de um desses endere?os seja 0 
+    ;o caractere pode ir de #H20 ' ' e #h7A 'z'
+
+
+                ; estou testando se o caractere esta no intervalo correto
+                cmp             (R5), #H20      ; faz caractere - H20
+                                                ; se der negativo, caractere eh menor que H20
+                bmi             fim_putmsg      ; se for  negativo, pula pro fim
+
+                cmp             #h7A, (R5)      ; faz #H7A - caractere
+                                                ; se der negativo, caractere eh maior que #h7a
+                bmi             fim_putmsg      ; se for negativo, pula pro fim
+
+                ; tambem preciso testar se a posicao do visor esta no intervalo correto (0 - H23)
                 tst             R4
                                                 ; se R4 for negativo, isto eh, menor q zero, vai pro final
                 bmi             fim_putmsg          
+
+                cmp             #H23, R4        ; faz H23 - R4
+                                                ; se der negativo, eh maior que h23
+                bmi             fim_putmsg      ; se for negativo, pula pro fim
+
+
        
                 mov             (R5), R0        ; salvando o end R5
-                inc              R5             ; preciso conseguir usar o proximo end
-                ; preciso fazer um loop pra ir colocando ate chegar no zero 
-                tst             (r0)            ; testo o valor que esta em R5
-                beq             fim_putmsg      ; se for 0, eh o fim do programa
-                cmp             #H20, (R5)      ; faz 32 - o caractere que foi recebido
-                                                ; caso seja maior que 0, o caractere eh menor que 32
-                bhi             fim_putmsg      ; significa que eh menor que 32, entao pula pro final
-                cmp             (R5) , #H7A     ; faz R5 - 122; 
-                                                ; caso seja maior que 0, eh porque R5 eh maior que 122 
-                bhi             fim_putmsg      ; significa que eh maior que 122, entao pula pro final
+                and             #H00FF, r0
+                inc             R5             ; preciso conseguir usar o proximo end
 
-                mov             R0, VISOR(R4)    ; desse jeito eu pulo de dois em dois!
-                                        ; aqui pode dar erro! 
+
+                ; preciso fazer um loop pra ir colocando ate chegar no zero 
+                tst             (R0)            ; testo o valor que esta em R5
+                beq             fim_putmsg      ; se for 0, eh o fim do programa
+
+                mov             R0, VISOR(R4)   ; 
                 inc             R4
-                br             putmsg_loop
+                br              putmsg_loop
 
 fim_putmsg:
 		rts		r7
@@ -207,24 +224,21 @@ fim_putmsg:
 ;------------------------------------------------------------------------------
 
 
-; escrever espaços de 65500 a 65535
+; escrever espa?os de 65500 a 65535
 
 
 clr_visor:
-
-                mov             #H20, VISOR     ; coloca espaço no primeiro end do visor
+                mov             #VISOR, R3     ;vou salvar o visor no registrador
+loop_visor: 
+                mov             #H20, (R3)     ; coloca espa?o no primeiro end do visor
         
-                cmp             VISOR, #HFFFF   ; ve se ja estou no ultimo endereco
-                beq             fim_clr         ; se estou, vou pro final
-                inc             VISOR           ; se nao, aumento um endereco e repito
+                cmp             R3, #HFFFF     ; ve se ja estou no ultimo endereco
+                beq             fim_clr        ; se estou, vou pro final
+                inc             R3             ; se nao, aumento um endereco e repito
                                         
-                jmp             clr_visor 
-
-        ; fazer versao usando BNE depois!
+                br              loop_visor 
 
 fim_clr:     
-                mov             #H20, (VISOR)   ; zerando o ultimo endereco
-                mov             #hFFDC, VISOR   ; devolvo o valor do visor
                 rts	        r7
                         
 
@@ -237,14 +251,13 @@ fim_clr:
 ; se NAO ha,   R0 = !0 
 ;------------------------------------------------------------------------------
 kbhit:
-
-                mov             #1, R0
-                cmp             TECST, #H80
-                bne             fim_khbit 
-                mov             #0, R0
+                mov             #1, R0          ; deixo como se nao tivesse tecla digitada
+                cmp             TECST, #H80     ; comparo pra ver se ha tecla 
+                bne             fim_khbit       ; se nao ha mesmo, pulo pro final
+                mov             #0, R0          ; se ha, coloco zero em r0 e sigo pro final
 
 fim_khbit:
-	        rts             r7
+	            rts             r7
 
         ; ainda eh possivel fazer passando o valor de TECST pra R0 e subtraindo #H80
 
@@ -254,8 +267,8 @@ fim_khbit:
 ;------------------------------------------------------------------------------
 get_timer:
 
-        ; acredito que vou conseguir o valor do timer por outro lugar, entao, aqui eh só devolver essa variavel
-                mov             VAR_TIMER, r0   ; TIMER eh uma variável, um contador! 
+        ; acredito que vou conseguir o valor do timer por outro lugar, entao, aqui eh s? devolver essa variavel
+                mov             VAR_TIMER, r0   ; TIMER eh uma vari?vel, um contador! 
 		rts		r7
 
 
@@ -267,8 +280,8 @@ get_timer:
 ; void	clr_timer()
 ;------------------------------------------------------------------------------
 clr_timer:
-        ; acredito que vou conseguir o valor do timer por outro lugar, entao, aqui eh só devolver essa variavel ZERADA
-                clr             TIMER           ; zerando o contador TIMER 
+        ; acredito que vou conseguir o valor do timer por outro lugar, entao, aqui eh s? devolver essa variavel ZERADA
+                clr             VAR_TIMER           ; zerando o contador TIMER 
 		rts		r7
 
 
@@ -304,7 +317,7 @@ fim_set:        rts		r7
 ; informacoes sobre a velocidade do veiculo controlado pelo programa
 ; r0 devolve a velocidade atual (entre 0 e 1)
 ; retorna a velocidade do usuario, que eh controlada por + e -
-; a velocidade vem da infos da interrupção
+; a velocidade vem da infos da interrup??o
 ;------------------------------------------------------------------------------
 get_speed:
                 mov             VELOCIDADE, R0 ; Vou mover o valor da variavel velocidade para o R0
@@ -326,7 +339,7 @@ isr:
 
 
         ;codigo alterado para saber se eh do timer ou teclado
-	        mov		INTS,R0		; Verifica se eh interrupcao do TECLADO
+	    mov		INTS,R0		; Verifica se eh interrupcao do TECLADO
 		and		#2,R0           ; mascara AND pra ver se o digito 1 esta ligado (ou seja, forma 2 em binario)
 		beq		ISR2            ; se for 0, nao eh do teclado
 		jsr		r7,ISRtec	; Tratamento da INT do TECLADO
@@ -334,7 +347,7 @@ isr:
 
 
 ISR2:
-        ;usando aqui pra verifificar se eh interrupção do timer, se veio pra ca já nao eh do timer 
+        ;usando aqui pra verifificar se eh interrup??o do timer, se veio pra ca j? nao eh do timer 
                 mov		INTS,R0		; Verifica se eh interrupcao do TIMER
 		and		#1,R0           ; mascara AND pra ver se o digito 0 esta ligado 
 		beq		cont            ; se for 0, nao eh do TIMER, continuo
@@ -361,16 +374,16 @@ ISRtim:
         
         ; ISSO AQ EH DESNECESSARIO
         ; 1 segundo eh 1000 milissegundos
-        ; cada notificação eh a cada 100 milissegundos
+        ; cada notifica??o eh a cada 100 milissegundos
         ; logo, 10 notificacoes = 1 segundo
         ; a cada 10 notificacoes, vou aumentar meu timer em 1  
 
-               ;  add             #H01, NTS_TIMER ; se entrou nessa rotina, somo uma notificacao ao timer
+               ; add             #H01, NTS_TIMER ; se entrou nessa rotina, somo uma notificacao ao timer
                ; cmp             NTS_TIMER, #HA  ; verifico se ja foram 10 notificacoes de timer
                ; bne             ISRtim_Fim      ; se nao foram, vou pro fim sem fazer nada
 
-                add             TIMDT, VAR_TIMER     ; se foram 10 notificacoes, vou adicionar 1 segundo ao timer
-                ;mov             #H0, NTS_TIMER  ; depois de passarem 10, vou zerar pra começar a contar de novo
+                 add             TIMDT, VAR_TIMER; se foram 10 notificacoes, vou adicionar 1 segundo ao timer
+                ;mov             #H0, NTS_TIMER  ; depois de passarem 10, vou zerar pra come?ar a contar de novo
 		
 		
 ISRtim_Fim:
@@ -380,12 +393,12 @@ ISRtim_Fim:
 	
 ; Tratamento das interrupcoes de teclado *************************************************************** 
 ISRtec: 
-                tst             TECST           ; vê se uma tecla foi teclada
+                tst             TECST           ; v? se uma tecla foi teclada
                                                 ; posso, inclusive, aqui verificar qual tecla que foi 
                 beq             ISRtec_Fim      ; se nao foi teclado, vou pro final (nao faz sentido, pq se entra aqui eh teclada)
 
 
-                ;aqui, é como eu vou LIDAR com o teclado
+                ;aqui, ? como eu vou LIDAR com o teclado
 
                 cmp             TECDT, #'+'     ; vejo se eh um + que foi teclado
                 beq             more_speed      ; se for, vou aumentar a velocidade 
@@ -413,7 +426,7 @@ less_speed:
 
 
 ISRtec_Fim: 
-                mov             #H0, TECST       ; nao posso esquecer de zerar o TECST  
+ ;               mov             #H0, TECST       ; nao posso esquecer de zerar o TECST  
                 rts             r7               ; volto de onde vim
 
 ; ======================================================================================================
@@ -433,4 +446,4 @@ VELOCIDADE:     dw      0
 NTS_TIMER:      dw      0
 
 ORG H7FFF
-STACK:          db      0
+;STACK:           db      0
