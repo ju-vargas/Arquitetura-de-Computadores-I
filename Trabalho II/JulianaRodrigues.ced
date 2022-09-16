@@ -100,11 +100,12 @@ VISOR:	dab		[36]		        ; Portas de acesso ao visor
                 mov             #STACK, R6 
                 mov             #isr, IVET
                 clr             VELOCIDADE
+                clr             VAR_TIMER ; VER SE MUDA
                 clr             INTS
                 clr             TECST
                 mov             #5, TIMDT           ;5 ou 100?
                 jsr             r7, clr_visor
-                mov             #H83, INTE
+                mov             #H82, INTE
 		        jmp	_APP
 
 ;
@@ -139,7 +140,7 @@ putchar:
                 ; conferir se esta no endereco correto
                 cmp             R5, #H20        ; o caractere que foi recebido - #H20
                                                 ; caso seja menor que 0, o caractere � menor que h20 (err0)
-                bmi             fim_putchar     ; significa que eh menor que h20, entao pula pro final
+                blt             fim_putchar     ; significa que eh menor que h20, entao pula pro final
                 cmp             R5, #H7A        ; faz R5 - 122; 
                                                 ; caso seja maior que 0, eh porque R5 eh maior que 122 
                 bgt             fim_putchar     ; significa que eh maior que 122, entao pula pro final
@@ -372,7 +373,7 @@ cont:
 ISRtim:
 
 
-                add             TIMDT, VAR_TIMER; se foram 10 notificacoes, vou adicionar 1 segundo ao timer
+                add             TIMDT, VAR_TIMER; uma notificação passou, logo, adiciono o tempo dela no meu timer
 		
 		
 ISRtim_Fim:
@@ -414,8 +415,7 @@ less_speed:
                 jmp             ISRtec_Fim      
 
 
-ISRtec_Fim: 
- ;               mov             #H0, TECST       ; nao posso esquecer de zerar o TECST  
+ISRtec_Fim:  
                 rts             r7               ; volto de onde vim
 
 ; ======================================================================================================
@@ -432,7 +432,4 @@ ISRtec_Fim:
 ;VISOR:          daw     65500
 VAR_TIMER:      dw      0
 VELOCIDADE:     dw      0
-NTS_TIMER:      dw      0
 
-ORG H7FFF
-;STACK:           db      0
