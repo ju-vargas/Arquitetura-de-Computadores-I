@@ -15,7 +15,7 @@
 	
 nomeArq db "file.txt", 00 
 
-texto   db "nem sempre a piedade eh uma virtude, aquele q poupa o lobo condena os cordeiros - victor hugo"
+texto   db 4Dh, 61h,72h, 63h, 75h, 73h
 	
 	.code    
 	.startup
@@ -33,10 +33,11 @@ texto   db "nem sempre a piedade eh uma virtude, aquele q poupa o lobo condena o
     ;escrever no arquivo
     mov ah, 40H     ;diz que esta escrevendo  
     mov bx, si      ;
-    mov cx, 20H
+    mov cx, 7H
     lea dx, texto
     int 21H
     
+             
     
     
     
