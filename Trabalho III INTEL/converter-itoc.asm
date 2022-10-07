@@ -2,7 +2,7 @@
 ; You may customize this and other start-up templates; 
 ; The location of this template is c:\emu8086\inc\0_com_template.txt
 
-
+;ESSE CONVERSAO NAO DEVE SER FEITA NO TRABALHO DO INTEL!
 ;
 ;====================================================================
 
@@ -33,7 +33,7 @@ printar db 0H, 24H
      
      ; primeiro, queremos separar nos registradores 
              
-     mov ax,22FDH  
+     mov ax,4AB7H  
      
      ; ah = 0010 0010  
      ;         2    2
