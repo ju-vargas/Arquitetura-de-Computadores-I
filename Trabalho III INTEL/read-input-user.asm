@@ -1,7 +1,6 @@
 
-; You may customize this and other start-up templates; 
-; The location of this template is c:\emu8086\inc\0_com_template.txt
-
+; LENDO ATE 100 CARACTERES DE INPUT E PRINTANDO QNTD DE LIDOS NA TELA AO FINAL
+; nao printa quando 100 caracteres sao colocados, consertar
 
 ;
 ;====================================================================
@@ -13,21 +12,25 @@
 
 	.data  
 	
-bufferTec	db	0C8H dup (?) 
-print db 0
+bufferTec	db	064H dup (?) 
+print dw 0, 24H 
+
 	
 	.code    
 	.startup
+      
+    
+                                                                            
+		            
             
-	mov		cx,0C8H           ;cx eh o numero de caracteres a serem lidos 
+	mov		cx,064H           ;cx eh o numero de caracteres a serem lidos 
 	lea		bx,BufferTec
 	call	ReadString
 	
-	
-    mov     dl, print
-    mov     ah, 2
-    int     21H	                                                                        
-		                                                                        
+	mov     ah, 9H            ;uso para printar quantos numeros peguei, em ASCII
+    lea     dx, print
+    int     21H	
+                                                                 
 		                                                                        
     
 fim:                                                           		        
