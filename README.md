@@ -1,5 +1,6 @@
 # Arquitetura-de-Computadores-I
 
 
-Repositório para os trabalhos da cadeira de Arquitetura de Compututadores 1.
-Segundo Semestre de Engenharia de Computação na Universidade Federal do Rio Grande do Sul. 
+Semestre: 2° Engenharia de Computação - UFRGS
+
+Repositório com materiais e trabalhos da cadeira de Arquitetura de Computadores I.
